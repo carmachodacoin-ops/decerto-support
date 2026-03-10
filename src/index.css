@@ -1,3 +1,145 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Respect reduced motion for accessibility (international best practice) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip link: visible on focus for accessibility */
+.skip-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: #0f766e;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+/* Scroll-triggered fade-in (optional: add class .animate-on-scroll to sections) */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Touch-friendly minimum sizes for interactive elements (responsive) */
+@media (max-width: 768px) {
+  button:not(.skip-link),
+  a[href] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth focus ring for keyboard users */
+*:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}
+
+/* Professional button base – consistent look and accessibility */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 min-h-[44px] px-5 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn bg-teal-600 text-white border border-teal-700/50 shadow-md hover:bg-teal-700 hover:shadow-lg active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border-2 border-slate-200 shadow-sm hover:border-teal-300 hover:bg-slate-50 active:scale-[0.98];
+  }
+  .btn-choice {
+    @apply btn min-h-[48px] font-medium border-2 border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
+  }
+  .btn-choice-active {
+    @apply btn-choice border-teal-600 bg-teal-600 text-white border-teal-700 shadow-md hover:bg-teal-700 hover:border-teal-700;
+  }
+}
+
+html {
+  font-size: 16px;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 640px) {
+  html {
+    font-size: 18px;
+  }
+}
+@media (min-width: 1024px) {
+  html {
+    font-size: 19px;
+  }
+}
+
+/* Safe area for notched devices (phones, tablets) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .fixed.bottom-6.right-6 {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    right: calc(1.5rem + env(safe-area-inset-right));
+  }
+  .fixed.bottom-6.left-6 {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    left: calc(1.5rem + env(safe-area-inset-left));
+  }
+}
+
+/* Prevent horizontal scroll and smooth scrolling */
+#root {
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Responsive images – prevent overflow on small screens */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Touch-friendly form controls on mobile */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 16px; /* prevents zoom on focus in iOS */
+  }
+}

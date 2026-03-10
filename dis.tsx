@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Menu, X, Phone, Mail, ChevronRight, ArrowRight, Facebook, Twitter, Youtube, Check, Calendar, Target, HandHelping, Car, Home, Shield } from 'lucide-react';
+import { Menu, X, Phone, Mail, ChevronRight, ArrowRight, Facebook, Twitter, Youtube, Check, Calendar, Target, HandHelping, Home, Shield, ExternalLink, MapPin, ChevronUp, Star, Leaf, Stethoscope, Globe, Type, Palette } from 'lucide-react';
+import logoSrc from './src/logo/A5fc6dd750d204bc8ac928a934d89d45d3.png';
+import imageJpg from './src/logo/image.JPG';
+import image2 from './src/logo/image2.JPG';
+import photo2 from './src/logo/2.jpeg';
+import photo3 from './src/logo/3.jpeg';
+import photo4 from './src/logo/4.jpeg';
+import photoJpeg from './src/logo/photo.jpeg';
 
 // Types
-interface Service {
-  title: string;
-  description: string;
-  icon: string;
-}
-
 interface Testimonial {
   name: string;
   text: string;
@@ -21,9 +22,17 @@ interface BlogPost {
   category: string;
 }
 
-// Router Component
-const Router: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
+// Text zoom and background theme (persisted)
+const ZOOM_LEVELS = [90, 100, 110, 125, 150] as const;
+const BASE_FONT_PX = 18;
+const BACKGROUND_THEMES = ['default', 'warm', 'cool', 'light', 'dark'] as const;
+type BackgroundTheme = typeof BACKGROUND_THEMES[number];
+const BACKGROUND_CLASSES: Record<BackgroundTheme, string> = {
+  default: 'bg-slate-50',
+  warm: 'bg-amber-50',
+  cool: 'bg-slate-100',
+  light: 'bg-white',
+  dark: 'bg-slate-900',
 };
 
 // Main App Component
@@ -31,6 +40,16 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [textZoom, setTextZoom] = useState(() => {
+    const saved = localStorage.getItem('decerto-text-zoom');
+    const n = saved ? parseInt(saved, 10) : 100;
+    return ZOOM_LEVELS.includes(n as typeof ZOOM_LEVELS[number]) ? n : 100;
+  });
+  const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>(() => {
+    const saved = localStorage.getItem('decerto-background') as BackgroundTheme | null;
+    return saved && BACKGROUND_THEMES.includes(saved) ? saved : 'default';
+  });
+  const [showDisplayPanel, setShowDisplayPanel] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,8 +65,30 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setShowBackToTop(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Apply text zoom to root font size
+  useEffect(() => {
+    const sizePx = (BASE_FONT_PX * textZoom) / 100;
+    document.documentElement.style.fontSize = `${sizePx}px`;
+    localStorage.setItem('decerto-text-zoom', String(textZoom));
+  }, [textZoom]);
+
+  // Persist background theme
+  useEffect(() => {
+    localStorage.setItem('decerto-background', backgroundTheme);
+  }, [backgroundTheme]);
+
+  const rootBgClass = BACKGROUND_CLASSES[backgroundTheme];
+
   return (
-    <div className="font-sans bg-slate-50 text-slate-900 antialiased">
+    <div className={`font-sans ${rootBgClass} ${backgroundTheme === 'dark' ? 'text-slate-100' : 'text-slate-900'} antialiased min-h-screen overflow-x-hidden transition-colors duration-300`}>
+      <TrustBar />
       <Header 
         scrolled={scrolled} 
         currentPage={currentPage} 
@@ -56,17 +97,187 @@ export default function App() {
         setMobileMenuOpen={setMobileMenuOpen}
       />
       
-      <main className="min-h-screen">
-        {currentPage === 'home' && <HomePage navigate={navigate} />}
-        {currentPage === 'services' && <ServicesPage navigate={navigate} />}
-        {currentPage === 'careers' && <CareersPage />}
-        {currentPage === 'contact' && <ContactPage />}
+      <main id="main-content" className="min-h-screen" role="main">
+        <div key={currentPage} className="animate-page-enter">
+          {currentPage === 'home' && <HomePage navigate={navigate} />}
+          {currentPage === 'services' && <ServicesPage navigate={navigate} />}
+          {currentPage === 'careers' && <CareersPage />}
+          {currentPage === 'contact' && <ContactPage />}
+          {currentPage === 'settings' && (
+            <SettingsPage
+              textZoom={textZoom}
+              setTextZoom={setTextZoom}
+              backgroundTheme={backgroundTheme}
+              setBackgroundTheme={setBackgroundTheme}
+            />
+          )}
+        </div>
       </main>
 
       <Footer navigate={navigate} />
+      <DisplayControls
+        textZoom={textZoom}
+        setTextZoom={setTextZoom}
+        backgroundTheme={backgroundTheme}
+        setBackgroundTheme={setBackgroundTheme}
+        open={showDisplayPanel}
+        onToggle={() => setShowDisplayPanel((v) => !v)}
+        onOpenSettings={() => { setShowDisplayPanel(false); navigate('settings'); }}
+      />
+      <BackToTop show={showBackToTop} />
     </div>
   );
 }
+
+// Display controls: text zoom and background theme (floating quick access)
+const DisplayControls: React.FC<{
+  textZoom: number;
+  setTextZoom: (v: number) => void;
+  backgroundTheme: BackgroundTheme;
+  setBackgroundTheme: (v: BackgroundTheme) => void;
+  open: boolean;
+  onToggle: () => void;
+  onOpenSettings: () => void;
+}> = ({ textZoom, setTextZoom, backgroundTheme, setBackgroundTheme, open, onToggle, onOpenSettings }) => (
+  <div className="fixed bottom-6 left-6 z-40 flex flex-col items-end gap-2">
+    {open && (
+      <div
+        className="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 w-72 animate-fade-in"
+        role="dialog"
+        aria-label="Display options: text size and background"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-base font-semibold text-slate-800">Display</span>
+          <button
+            type="button"
+            onClick={onToggle}
+            className="btn-secondary !min-h-0 !py-2 !px-3 text-slate-600 hover:bg-slate-100"
+            aria-label="Close display options"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Type size={18} className="text-teal-600" aria-hidden />
+              <span className="text-sm font-medium text-slate-700">Text size</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {ZOOM_LEVELS.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setTextZoom(level)}
+                  className={`btn-choice !min-h-[40px] !min-w-[40px] !text-sm !px-2 ${textZoom === level ? '!border-teal-600 !bg-teal-600 !text-white' : ''}`}
+                  aria-label={`Text size ${level}%`}
+                  aria-pressed={textZoom === level}
+                >
+                  {level}%
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Palette size={18} className="text-teal-600" aria-hidden />
+              <span className="text-sm font-medium text-slate-700">Background</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {BACKGROUND_THEMES.map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  onClick={() => setBackgroundTheme(theme)}
+                  className={`btn-choice !min-h-[40px] !px-3 !text-sm capitalize ${backgroundTheme === theme ? '!border-teal-600 !bg-teal-600 !text-white' : ''}`}
+                  aria-label={`Background: ${theme}`}
+                  aria-pressed={backgroundTheme === theme}
+                >
+                  {theme}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="btn-secondary mt-4 w-full"
+        >
+          Open full Settings
+        </button>
+      </div>
+    )}
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 border-2 ${
+        open ? 'bg-teal-600 text-white border-teal-700 shadow-md' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+      }`}
+      aria-label={open ? 'Close display options' : 'Open display options (text size and background)'}
+      aria-expanded={open}
+    >
+      <Palette size={22} aria-hidden />
+    </button>
+  </div>
+);
+
+// Settings page – empty (no content); use the floating display button for text size and background
+const SettingsPage: React.FC<{
+  textZoom: number;
+  setTextZoom: (v: number) => void;
+  backgroundTheme: BackgroundTheme;
+  setBackgroundTheme: (v: BackgroundTheme) => void;
+}> = () => (
+  <div className="min-h-screen w-full pt-24 pb-20 px-6 sm:px-8 lg:px-12 xl:px-16">
+    <div className="max-w-5xl w-full mx-auto">
+      <p className="text-slate-600 text-center">Use the display button (bottom-left of the page) to change text size and background.</p>
+    </div>
+  </div>
+);
+
+// Trust bar – international clarity (Australia)
+const TrustBar: React.FC = () => (
+  <div className="bg-teal-800 text-teal-100 text-center py-2 px-4 text-sm font-medium">
+    <span className="inline-flex items-center justify-center gap-2 flex-wrap">
+      <MapPin size={14} className="flex-shrink-0" aria-hidden />
+      Serving Australia
+      <span className="hidden sm:inline" aria-hidden>·</span>
+      <span className="hidden sm:inline">Disability Services Provider</span>
+    </span>
+  </div>
+);
+
+// Back to top – responsive, accessible
+const BackToTop: React.FC<{ show: boolean }> = ({ show }) => (
+  <button
+    type="button"
+    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    className={`fixed bottom-6 right-6 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-teal-600 text-white border-2 border-teal-700 shadow-lg hover:bg-teal-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-all duration-300 flex items-center justify-center ${
+      show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+    }`}
+    aria-label="Back to top"
+  >
+    <ChevronUp size={24} aria-hidden />
+  </button>
+);
+
+// Logo image with fallback to icon
+const LogoImage: React.FC = () => {
+  const [error, setError] = useState(false);
+  return error ? (
+    <div className="bg-teal-600 p-3 rounded-xl shadow-sm flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">
+      DS
+    </div>
+  ) : (
+    <img
+      src={logoSrc}
+      alt="Decerto Supports"
+      className="h-14 w-auto object-contain flex-shrink-0"
+      onError={() => setError(true)}
+    />
+  );
+};
 
 // Header Component
 const Header: React.FC<{
@@ -87,59 +298,54 @@ const Header: React.FC<{
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-white shadow-sm border-b border-slate-200/80' 
-          : 'bg-white/90 backdrop-blur-md'
+          ? 'bg-white shadow-md border-b border-slate-200/90' 
+          : 'bg-white/95 backdrop-blur-lg border-b border-slate-100'
       }`}
       style={{
         animation: 'slideDown 0.5s ease-out'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+      <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+        <div className="flex justify-between items-center h-20 min-h-[4rem] sm:h-24 sm:min-h-[5rem]">
           {/* Logo */}
           <button 
             onClick={() => navigate('home')}
-            className="flex items-center gap-3 group"
+            className="flex items-center gap-4 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg"
           >
-            <div className="bg-teal-600 p-2.5 rounded-xl shadow-sm">
-              <Heart className="text-white" size={26} fill="currentColor" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-                Care Connect
+            <LogoImage />
+            <div className="text-left">
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight leading-tight">
+                Decerto Supports
               </h1>
-              <p className="text-xs text-slate-500 -mt-0.5">Disability &amp; Family Support</p>
+              <p className="text-sm sm:text-base text-slate-500 mt-0.5 font-medium tracking-wide">
+                Disability Services Provider
+              </p>
             </div>
           </button>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-0.5" aria-label="Main navigation">
             {navItems.map((item) => (
               <button
                 key={item.page}
                 onClick={() => navigate(item.page)}
-                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`min-h-[44px] px-5 py-3 rounded-xl text-base font-semibold border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${
                   currentPage === item.page
-                    ? 'bg-teal-600 text-white'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-teal-600'
+                    ? 'bg-teal-600 text-white border-teal-700 shadow-md hover:bg-teal-700'
+                    : 'border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-teal-600'
                 }`}
               >
                 {item.name}
               </button>
             ))}
-            <a
-              href="tel:+97517878787"
-              className="ml-4 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2"
-            >
-              <Phone size={16} />
-              +975 17878787
-            </a>
           </nav>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="md:hidden min-h-[44px] min-w-[44px] p-3 rounded-xl border-2 border-transparent hover:bg-slate-100 hover:border-slate-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 flex items-center justify-center"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -149,32 +355,25 @@ const Header: React.FC<{
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div 
-          className="md:hidden bg-white border-t shadow-xl"
+          className="md:hidden bg-white border-t border-slate-200 shadow-lg"
           style={{
             animation: 'slideDown 0.3s ease-out'
           }}
         >
-          <div className="px-4 py-4 space-y-2">
+          <div className="px-6 py-5 space-y-1">
             {navItems.map((item) => (
               <button
                 key={item.page}
                 onClick={() => navigate(item.page)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left min-h-[48px] px-5 py-3.5 rounded-xl text-base font-semibold border-2 transition-colors ${
                   currentPage === item.page
-                    ? 'bg-teal-600 text-white'
-                    : 'text-slate-700 hover:bg-slate-100'
+                    ? 'bg-teal-600 text-white border-teal-700'
+                    : 'border-transparent text-slate-700 hover:bg-slate-50 hover:border-slate-200'
                 }`}
               >
                 {item.name}
               </button>
             ))}
-            <a
-              href="tel:+97517878787"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700"
-            >
-              <Phone size={16} />
-              +975 17878787
-            </a>
           </div>
         </div>
       )}
@@ -199,6 +398,9 @@ const Header: React.FC<{
 const HomePage: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   return (
     <>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <HeroSection navigate={navigate} />
       <AboutSection navigate={navigate} />
       <WhyChooseSection navigate={navigate} />
@@ -212,66 +414,134 @@ const HomePage: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) 
   );
 };
 
-// Hero Section – professional, disability & family health care
+// Hero slider – photos from src/logo (no logo image in photo sections)
+const HERO_SLIDES = [
+  { src: imageJpg, caption: 'Support built on trust, understanding, and genuine care' },
+  { src: image2, caption: 'Lived experience at the heart of everything we do' },
+  { src: photoJpeg, caption: 'Reliable, compassionate support for independence and dignity' },
+];
+
+// Hero Section – multi-image slider; all copy original
 const HeroSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-        <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <div className="space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight tracking-tight">
-              Personalised care for you and your family
-            </h1>
-            <p className="text-lg text-slate-600 leading-relaxed max-w-xl">
-              Tailored support for daily living, health and wellbeing. We work with you to build a plan that fits your life and keeps you at the centre of every decision.
+    <section className="relative min-h-[70vh] sm:min-h-[80vh] lg:min-h-[85vh] flex items-center pt-20 sm:pt-24 pb-12 sm:pb-16 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20 w-full">
+        <div className="grid md:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center">
+          <div className="space-y-4 sm:space-y-5 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <p className="text-teal-600 font-semibold text-xs sm:text-sm uppercase tracking-wider">
+              Disability Support
             </p>
-            <div className="flex flex-wrap gap-4 pt-2">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight tracking-tight">
+              Decerto Supports — <span className="text-teal-600">Personal, Reliable Care</span>
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 leading-relaxed max-w-xl">
+              At Decerto Supports, we believe support should feel personal — not just a service, but something built on trust, understanding, and genuine care. With lived experience at the heart of our organisation, we truly understand the challenges and realities of living with a disability.
+            </p>
+            <div className="flex flex-wrap gap-3 sm:gap-4 pt-2">
               <button
                 onClick={() => navigate('contact')}
-                className="group px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2"
+                className="btn-primary group flex items-center gap-2"
               >
                 Contact Us
                 <ArrowRight className="group-hover:translate-x-0.5 transition-transform" size={18} />
               </button>
               <a
-                href="tel:+97517878787"
-                className="px-6 py-3 bg-white text-slate-700 rounded-lg font-semibold border border-slate-200 hover:border-teal-300 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                href="tel:0400000000"
+                className="btn-secondary flex items-center gap-2"
               >
                 <Phone size={18} />
-                Call +975 17878787
+                Call Us
               </a>
             </div>
-            <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 mt-8">
-              <div>
-                <div className="text-2xl font-bold text-teal-600">24/7</div>
-                <div className="text-sm text-slate-500 mt-0.5">Care available</div>
+            <div className="grid grid-cols-3 gap-3 sm:gap-6 pt-4 sm:pt-6 border-t border-slate-200 mt-4 sm:mt-6">
+              <div className="text-center sm:text-left">
+                <div className="text-lg sm:text-2xl font-bold text-teal-600">Quality</div>
+                <div className="text-sm sm:text-base text-slate-500 mt-0.5">Focused</div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-teal-600">Local</div>
-                <div className="text-sm text-slate-500 mt-0.5">Support</div>
+              <div className="text-center sm:text-left">
+                <div className="text-lg sm:text-2xl font-bold text-teal-600">Lived</div>
+                <div className="text-sm sm:text-base text-slate-500 mt-0.5">Experience</div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-teal-600">8+</div>
-                <div className="text-sm text-slate-500 mt-0.5">Services</div>
+              <div className="text-center sm:text-left">
+                <div className="text-lg sm:text-2xl font-bold text-teal-600">You</div>
+                <div className="text-sm sm:text-base text-slate-500 mt-0.5">At the centre</div>
               </div>
             </div>
           </div>
+
+          {/* Multi-image slider */}
           <div className="relative">
-            <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200/80">
-              <img
-                src="https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?w=800&h=1000&fit=crop"
-                alt="Compassionate care and support at home - Unsplash"
-                className="w-full h-auto object-cover aspect-[4/5]"
-              />
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent">
-                <div className="flex items-center gap-3 text-white">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <Heart size={20} fill="white" />
+            <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200/80 aspect-[4/5] bg-slate-100">
+              {HERO_SLIDES.map((slide, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-all duration-500 ease-out ${
+                    index === slideIndex
+                      ? 'opacity-100 z-10'
+                      : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                >
+                  <img
+                    src={slide.src}
+                    alt="Decerto Supports - Disability Services"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/60 to-transparent">
+                    <div className="flex items-center gap-2 sm:gap-3 text-white">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Star size={20} className="text-white" />
+                      </div>
+                      <span className="font-medium text-sm sm:text-base">{slide.caption}</span>
+                    </div>
                   </div>
-                  <span className="font-medium">Compassionate care for every individual and family</span>
                 </div>
-              </div>
+              ))}
             </div>
+            {/* Slider dots – touch-friendly tap target */}
+            <div className="flex justify-center gap-2 mt-4">
+              {HERO_SLIDES.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSlideIndex(index)}
+                  className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full transition-all duration-300 ${
+                    index === slideIndex
+                      ? 'bg-teal-600'
+                      : 'bg-slate-300 hover:bg-slate-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                >
+                  <span className={`block rounded-full ${
+                    index === slideIndex ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-slate-500'
+                  }`} />
+                </button>
+              ))}
+            </div>
+            {/* Prev/Next – touch-friendly 44px */}
+            <button
+              type="button"
+              onClick={() => setSlideIndex((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/90 shadow-md flex items-center justify-center text-slate-700 hover:bg-white transition-colors"
+              aria-label="Previous slide"
+            >
+              <ChevronRight className="rotate-180" size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlideIndex((prev) => (prev + 1) % HERO_SLIDES.length)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/90 shadow-md flex items-center justify-center text-slate-700 hover:bg-white transition-colors"
+              aria-label="Next slide"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -282,14 +552,14 @@ const HeroSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate 
 // About Section
 const AboutSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   return (
-    <section className="py-20 lg:py-24 bg-slate-50 border-t border-slate-200">
+    <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-white to-blue-50/40 border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid md:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
           <div className="relative order-2 md:order-1">
             <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200/80">
               <img
-                src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&h=600&fit=crop"
-                alt="Professional disability and health care support - Unsplash"
+                src={photo2}
+                alt="Professional disability and family support"
                 className="w-full h-auto object-cover aspect-[4/3]"
               />
             </div>
@@ -297,20 +567,23 @@ const AboutSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate
           <div className="space-y-5 order-1 md:order-2">
             <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">About Us</span>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-              Who we are
+              About Us
             </h2>
-            <p className="text-slate-600 leading-relaxed">
-              Care Connect exists to help people live well at home and in the community. We focus on what matters to you—choice, comfort and connection—so you can lead the life you want.
+            <p className="text-slate-600 text-base lg:text-lg leading-relaxed">
+              At Decerto Supports, we are a disability services provider committed to delivering compassionate, reliable, and high-quality supports to people living with disability.
             </p>
-            <p className="text-slate-600 leading-relaxed">
-              We offer disability support and family-focused care that adapts to your situation. Whether you need a few hours a week or more regular support, our team works alongside you to make daily life easier and more meaningful.
+            <p className="text-slate-600 text-base lg:text-lg leading-relaxed">
+              Our organisation is led by a Director who lives with a disability. This lived experience is not just a story — it is the foundation of our values. It shapes how we listen, how we support, and how we genuinely understand the challenges, goals, and aspirations of the people we work alongside every day.
             </p>
-            <p className="text-slate-600 leading-relaxed">
-              Services include personal care, help at home, transport, getting out into the community, and coordination so your support is clear and consistent. Everything we do is designed around you and your family.
+            <p className="text-slate-600 text-base lg:text-lg leading-relaxed">
+              We take a person-centred approach, placing each participant at the heart of everything we do. We work closely with you to design supports that are tailored to your individual needs, goals, and preferences — because we recognise that no two journeys are the same.
+            </p>
+            <p className="text-slate-600 text-base lg:text-lg leading-relaxed">
+              Reliability is at the heart of Decerto Supports. We understand that consistency is essential. We are committed to providing dependable, responsive, and consistent services, ensuring continuity of care and peace of mind.
             </p>
             <button
               onClick={() => navigate('contact')}
-              className="mt-4 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
+              className="btn-primary mt-4 inline-flex items-center gap-2"
             >
               Contact Us
               <ArrowRight size={18} />
@@ -322,23 +595,23 @@ const AboutSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate
   );
 };
 
-// Why Choose Section
+// Why Choose Us – Decerto differentiators
 const WhyChooseSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   const items = [
-    { title: 'Level 2 & 3 Specialist Support Coordination', icon: Target },
-    { title: 'Behaviour Support Implementation', icon: Shield },
-    { title: 'STA, Respite & SIL Accommodation', icon: Home },
+    { title: 'Lived experience at the helm', icon: HandHelping },
+    { title: 'Person-centred, tailored supports', icon: Target },
+    { title: 'Reliable, consistent care', icon: Shield },
   ];
   return (
-    <section className="py-20 lg:py-24 bg-teal-700 text-white">
+    <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-teal-700 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="text-teal-200 font-semibold text-sm uppercase tracking-wider">Why work with us</span>
+        <div className="text-center mb-8 sm:mb-12">
+          <span className="text-teal-200 font-semibold text-sm uppercase tracking-wider">Why Choose Us</span>
           <h2 className="text-3xl md:text-4xl font-bold mt-2 mb-4">
-            Support that fits your life
+            True support goes beyond tasks
           </h2>
           <p className="text-lg text-teal-100 max-w-2xl mx-auto">
-            We’re taking on new clients and can start when you’re ready. From short-term help to ongoing care, we’ll match you with the right support and a team that listens.
+            We believe in building trust, creating meaningful connections, and walking alongside you as you pursue greater independence, confidence, and quality of life.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 mb-10">
@@ -353,56 +626,59 @@ const WhyChooseSection: React.FC<{ navigate: (page: string) => void }> = ({ navi
           ))}
         </div>
         <p className="text-center text-teal-100 text-sm mb-6">
-          Flexible options: from a few hours to round-the-clock care
+          At Decerto Supports, it&apos;s not just about what we do — it&apos;s about how we make you feel.
         </p>
         <div className="text-center">
-          <a
-            href="mailto:karmachoda11@gmail.com"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-700 rounded-lg font-semibold hover:bg-teal-50 transition-colors"
+          <button
+            onClick={() => navigate('contact')}
+            className="btn-secondary inline-flex items-center gap-2"
           >
             <Mail size={18} />
             Contact Us
-          </a>
+          </button>
         </div>
       </div>
     </section>
   );
 };
 
-// Services Preview
+// Services Preview – card style with prominent icon
 const ServicesPreview: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   const services = [
-    { title: 'Support coordination', description: 'We help you navigate funding and services, set goals and connect with the right supports so you stay in control.', Icon: Target },
-    { title: 'Personal care', description: 'Day-to-day help with washing, dressing and hygiene delivered with respect and in line with your preferences.', Icon: HandHelping },
-    { title: 'Transport', description: 'Safe, comfortable travel to appointments, errands and outings so you can get where you need to go.', Icon: Car },
+    { title: 'Personal Assistance (Personal Care)', description: 'Respectful, dignified support with daily personal activities — showering, grooming, dressing, medication and mealtime support. Your privacy, dignity, and choice are always at the heart of everything we do.', Icon: HandHelping, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', borderColor: 'border-teal-100' },
+    { title: 'Social & Community Participation', description: 'Stay connected and build confidence with support for outings, events, hobbies and community life. Reliable, person-centred support for an active, confident life.', Icon: Star, iconBg: 'bg-amber-100', iconColor: 'text-amber-600', borderColor: 'border-slate-200' },
+    { title: 'Support Coordination', description: 'We help you understand your support plan, find the right providers, and coordinate supports so everything works for you.', Icon: Target, iconBg: 'bg-teal-100', iconColor: 'text-teal-600', borderColor: 'border-slate-200' },
   ];
   return (
-    <section className="py-20 lg:py-24 bg-white border-t border-slate-200">
+    <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-slate-50 to-white border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">What we do</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
-            Our services
+        <div className="text-center mb-8 sm:mb-12">
+          <span className="text-teal-600 font-semibold text-xs sm:text-sm uppercase tracking-wider">What we do</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mt-2">
+            Our Services
           </h2>
+          <p className="text-slate-600 text-base max-w-2xl mx-auto mt-3">
+            A wide range of supports tailored to your unique needs, goals, and preferences. You&apos;re not just another participant — you&apos;re part of a community that genuinely cares.
+          </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 mb-10">
           {services.map((service, index) => (
             <div
               key={index}
-              className="group bg-slate-50 rounded-xl p-6 border border-slate-200 hover:border-teal-200 hover:shadow-md transition-all"
+              className={`group bg-white rounded-2xl p-6 sm:p-8 border ${service.borderColor} hover:shadow-xl transition-all duration-300`}
             >
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4 group-hover:bg-teal-600 transition-colors">
-                <service.Icon className="text-teal-600 group-hover:text-white" size={24} />
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-5 ${service.iconBg}`}>
+                <service.Icon className={service.iconColor} size={28} fill="currentColor" strokeWidth={1.5} />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">{service.title}</h3>
-              <p className="text-slate-600 leading-relaxed text-sm">{service.description}</p>
+              <p className="text-slate-600 leading-relaxed text-base">{service.description}</p>
             </div>
           ))}
         </div>
         <div className="text-center">
           <button
             onClick={() => navigate('services')}
-            className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
+            className="btn-primary inline-flex items-center gap-2"
           >
             View All Services
             <ArrowRight size={18} />
@@ -416,7 +692,7 @@ const ServicesPreview: React.FC<{ navigate: (page: string) => void }> = ({ navig
 // Careers Preview
 const CareersPreview: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   return (
-    <section className="py-20 lg:py-24 bg-white border-t border-slate-200">
+    <section className="py-20 lg:py-24 bg-gradient-to-b from-amber-50/50 to-white border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div>
@@ -425,30 +701,30 @@ const CareersPreview: React.FC<{ navigate: (page: string) => void }> = ({ naviga
               Careers
             </h2>
             <p className="text-slate-600 mb-6 leading-relaxed">
-              We’re building a team of kind, dependable people who want to make a real difference. Support workers help with everyday tasks and are often a steady presence for clients and families.
+              At Decerto Supports, we&apos;re more than a team — we&apos;re a community built on compassion, respect, and reliability. We&apos;re always looking for dedicated, caring individuals who are passionate about making a genuine difference in people&apos;s lives.
             </p>
             <p className="text-slate-600 mb-6 leading-relaxed">
-              That includes help around the house, with paperwork and medicines, personal care and simply being there when it matters. If that sounds like you, get in touch at karmachoda11@gmail.com.
+              When you join us, you become part of a supportive and professional environment where your work is valued and your contribution truly matters. If you&apos;re reliable, compassionate, and committed to high-quality support, we&apos;d love to hear from you.
             </p>
             <button
               onClick={() => navigate('careers')}
-              className="px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-2"
+              className="btn-primary inline-flex items-center gap-2"
             >
-              Find out more
+              Work With Us
               <ArrowRight size={18} />
             </button>
           </div>
 
           <div className="relative">
             <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200/80">
-              <img
-                src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=800&h=600&fit=crop"
-                alt="Join our care team - Unsplash"
-                className="w-full h-auto object-cover aspect-[4/3]"
-              />
+                <img
+                  src={photo4}
+                  alt="Join Decerto Supports"
+                  className="w-full h-auto object-cover aspect-[4/3]"
+                />
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
-                <div className="font-semibold">Make a difference</div>
-                <div className="text-sm text-white/90">Join our compassionate team</div>
+                <div className="font-semibold">Let&apos;s grow together</div>
+                <div className="text-sm text-white/90">Email: careers@decertosupports.com.au</div>
               </div>
             </div>
           </div>
@@ -458,67 +734,92 @@ const CareersPreview: React.FC<{ navigate: (page: string) => void }> = ({ naviga
   );
 };
 
-// Blog Section – disability, family & health care; images from Unsplash
+// Blog Section – recent posts with attractive styling and background
 const BlogSection: React.FC = () => {
   const posts: BlogPost[] = [
     {
-      title: 'Safety and peace of mind in disability and family care',
-      date: 'May 21, 2023',
-      excerpt: 'How we keep participants and families safe at home and in the community, with clear plans and trained staff.',
-      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&h=400&fit=crop',
-      category: 'Health'
+      title: 'Why Lived Experience Makes Our Support Different',
+      date: 'Jan 15, 2025',
+      excerpt: 'Our director&apos;s lived experience shapes how we listen, support, and understand the challenges and aspirations of the people we work alongside every day.',
+      image: imageJpg,
+      category: 'About Us'
     },
     {
-      title: 'Staying active: community and social participation',
-      date: 'May 21, 2023',
-      excerpt: 'Ideas and support for outings, hobbies, and social activities that support wellbeing and independence.',
-      image: 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=600&h=400&fit=crop',
-      category: 'Activities'
+      title: 'Person-Centred Support: Your Goals, Your Way',
+      date: 'Feb 3, 2025',
+      excerpt: 'We design supports around your individual needs, goals, and preferences — because no two journeys are the same. Here&apos;s how we do it.',
+      image: image2,
+      category: 'Our Approach'
     },
     {
-      title: 'A welcoming approach to in-home and family support',
-      date: 'May 21, 2023',
-      excerpt: 'Why a warm, consistent approach matters for disability support and family health care at home.',
-      image: 'https://images.unsplash.com/photo-1516733968668-dbdce39c4651?w=600&h=400&fit=crop',
+      title: 'Reliable When It Matters Most',
+      date: 'Feb 18, 2025',
+      excerpt: 'Consistency is essential. We deliver on time, every time, with people you know and trust. Why reliability is at the heart of Decerto Supports.',
+      image: photo2,
       category: 'Support'
+    },
+    {
+      title: 'Understanding Your Support Plan: A Simple Guide',
+      date: 'Mar 1, 2025',
+      excerpt: 'Navigating your support plan can feel overwhelming. We break down the basics so you can feel confident and in control of your supports.',
+      image: photo3,
+      category: 'Resources'
+    },
+    {
+      title: 'Building Independence and Confidence at Home',
+      date: 'Mar 10, 2025',
+      excerpt: 'From daily personal care to community participation — how our team supports you to live with greater independence and dignity.',
+      image: photoJpeg,
+      category: 'Wellbeing'
     }
   ];
 
+  const categoryColors: Record<string, string> = {
+    'About Us': 'bg-teal-600',
+    'Our Approach': 'bg-blue-600',
+    'Support': 'bg-amber-600',
+    'Resources': 'bg-emerald-600',
+    'Wellbeing': 'bg-rose-500',
+  };
+
   return (
-    <section className="py-20 lg:py-24 bg-slate-50 border-t border-slate-200">
+    <section className="py-20 lg:py-24 bg-gradient-to-b from-teal-50 via-white to-slate-50 border-t border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Latest Updates</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
-            Latest Blog
+          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Insights &amp; Updates</span>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mt-2">
+            Recent Blog
           </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto mt-3">
+            Stories, tips, and updates from the Decerto Supports team.
+          </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((post, index) => (
             <article
               key={index}
-              className="group bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-shadow"
+              className="group bg-white rounded-2xl overflow-hidden shadow-md border border-slate-200 hover:shadow-xl hover:border-teal-200 transition-all duration-300"
             >
-              <div className="relative h-52 overflow-hidden">
+              <div className="relative h-48 overflow-hidden">
                 <img
                   src={post.image}
                   alt=""
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <span className="absolute top-3 left-3 px-2.5 py-1 bg-teal-600 text-white text-xs font-medium rounded">
+                <span className={`absolute top-3 left-3 px-2.5 py-1 ${categoryColors[post.category] || 'bg-teal-600'} text-white text-xs font-semibold rounded-lg shadow-sm`}>
                   {post.category}
                 </span>
               </div>
               <div className="p-5">
                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-                  <Calendar size={14} />
+                  <Calendar size={14} className="text-teal-500" />
                   {post.date}
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
                   {post.title}
                 </h3>
-                <p className="text-slate-600 text-sm mb-4">{post.excerpt}</p>
-                <span className="text-teal-600 font-semibold text-sm inline-flex items-center gap-1">
+                <p className="text-slate-600 text-base mb-4 line-clamp-3">{post.excerpt}</p>
+                <span className="text-teal-600 font-semibold text-sm inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                   Read more
                   <ChevronRight size={14} />
                 </span>
@@ -534,48 +835,56 @@ const BlogSection: React.FC = () => {
 // How We Work Section
 const HowWeWorkSection: React.FC = () => {
   const steps = [
-    { title: 'Understand what you want', description: 'We sit down with you to talk about your goals and what good support looks like for you.' },
-    { title: 'Build your plan', description: 'We help you access the right funding and services so your support matches your life.' },
-    { title: 'Get started quickly', description: 'We move at your pace and get supports in place so you’re not left waiting.' },
-    { title: 'Coordination and clarity', description: 'We keep your plan clear and up to date so you always know who’s doing what.' },
-    { title: 'Transparent and fair', description: 'Our fees are clear and we focus on getting you the best value from your funding.' },
-    { title: 'Ongoing guidance', description: 'We explain how systems and funding work so you can make informed choices.' }
+    { title: 'Listen and understand', description: 'We take the time to understand you, your goals, and what matters most in your life.' },
+    { title: 'Connect you with the right supports', description: 'We help you find the right providers that suit your needs and preferences.' },
+    { title: 'Coordinate your plan', description: 'We work with you to organise and coordinate your supports so you’re not left waiting.' },
+    { title: 'Explain your plan', description: 'We keep your plan clear and up to date so you always know who’s doing what.' },
+    { title: 'Build your independence', description: 'We build your confidence to manage your supports independently over time.' },
+    { title: 'Stand by you', description: 'We provide ongoing guidance, advocacy, and support when challenges arise.' }
   ];
 
   return (
-    <section className="py-20 lg:py-24 bg-white border-t border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Our approach</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
-            How we work
+    <section className="py-16 lg:py-24 bg-gradient-to-b from-teal-50 to-white border-t border-slate-200">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="text-center mb-14">
+          <span className="text-teal-600 font-semibold text-base uppercase tracking-wider">Support Coordination</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-4">
+            Our Approach
           </h2>
+          <p className="text-slate-600 text-lg md:text-xl max-w-3xl mx-auto leading-relaxed">
+            We are here to listen, support, and walk alongside you — so you feel confident, in control, and supported to live life your way.
+          </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {steps.map((step, index) => (
             <div
               key={index}
-              className="relative bg-slate-50 rounded-xl p-6 border border-slate-200 hover:border-teal-200 transition-colors"
+              className="bg-white rounded-2xl p-7 lg:p-8 border-2 border-slate-200 hover:border-teal-300 hover:shadow-xl transition-all duration-300 shadow-md"
             >
-              <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mb-4">
+              <div className="w-14 h-14 bg-teal-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mb-5">
                 {index + 1}
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
-              <p className="text-slate-600 text-sm">{step.description}</p>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">{step.title}</h3>
+              <p className="text-slate-600 text-base leading-relaxed">{step.description}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-14 p-6 lg:p-8 bg-teal-600 rounded-2xl text-center">
+          <p className="text-white text-lg md:text-xl font-medium leading-relaxed max-w-4xl mx-auto">
+            Our Promise: We keep things simple, supportive, and personalised — so you can focus on your goals, your independence, and living life your way.
+          </p>
         </div>
       </div>
     </section>
   );
 };
 
-// Testimonials Section – generic positive quotes (no real client names)
+// Testimonials Section
 const TestimonialsSection: React.FC = () => {
   const testimonials: Testimonial[] = [
-    { name: 'Family member', text: 'The team is easy to work with and the care we receive is excellent. We feel heard and well supported.' },
-    { name: 'Referrer', text: 'Clients are consistently happy with the service. Things are set up quickly and communication is always clear.' },
-    { name: 'Parent', text: 'My child looks forward to outings with their worker. The difference it has made to our family is huge.' }
+    { name: 'Participant', text: 'Support that feels personal — not just a service. They take the time to listen and really understand.' },
+    { name: 'Family', text: 'Reliable, on time, every time. We have peace of mind knowing our supports are consistent.' },
+    { name: 'Carer', text: 'A team that walks alongside you with genuine care and respect. It makes all the difference.' }
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -585,21 +894,21 @@ const TestimonialsSection: React.FC = () => {
   }, [testimonials.length]);
 
   return (
-    <section className="py-20 lg:py-24 bg-slate-50 border-t border-slate-200">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <span className="text-teal-600 font-semibold text-sm uppercase tracking-wider">Client stories</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">
+    <section className="py-20 lg:py-24 bg-gradient-to-b from-teal-50/50 to-slate-50 border-t border-slate-200">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="text-center mb-12">
+          <span className="text-teal-600 font-semibold text-base uppercase tracking-wider">Client stories</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mt-3">
             Testimonials
           </h2>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 md:p-10 text-center">
-          <Heart className="mx-auto mb-6 text-teal-500" size={40} fill="currentColor" />
-          <p className="text-lg text-slate-700 leading-relaxed mb-6 italic">
+        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-10 md:p-14 text-center">
+          <div className="mx-auto mb-8 w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-2xl font-serif">&ldquo;</div>
+          <p className="text-xl md:text-2xl text-slate-700 leading-relaxed mb-8 italic max-w-3xl mx-auto">
             &ldquo;{testimonials[currentIndex].text}&rdquo;
           </p>
-          <p className="font-semibold text-slate-900">— {testimonials[currentIndex].name}</p>
-          <div className="flex justify-center gap-2 mt-6">
+          <p className="font-semibold text-slate-900 text-xl">— {testimonials[currentIndex].name}</p>
+          <div className="flex justify-center gap-2 mt-8">
             {testimonials.map((_, index) => (
               <button
                 key={index}
@@ -619,29 +928,28 @@ const TestimonialsSection: React.FC = () => {
 // Contact Preview
 const ContactPreview: React.FC = () => {
   return (
-    <section className="py-20 lg:py-24 bg-white border-t border-slate-200">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-20 lg:py-24 bg-slate-50 border-t border-slate-200">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-10">
         <div className="bg-teal-700 rounded-2xl p-10 md:p-14 text-center text-white">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Get in touch</h2>
-          <p className="text-teal-100 mb-10 max-w-xl mx-auto">
-            Tell us what you need and we’ll help you put the right support in place.
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">Contact Us</h2>
+          <p className="text-teal-100 text-lg md:text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+            Simply talk to us and we can arrange the support you need. We believe everyone has the right to live a full life and make their own decisions — we’re here to help make that happen.
           </p>
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <a
-              href="mailto:karmachoda11@gmail.com"
-              className="bg-white/10 rounded-xl p-6 hover:bg-white/15 transition-colors border border-white/20"
-            >
-              <Mail className="mx-auto mb-3" size={28} />
-              <div className="font-semibold mb-1">Email</div>
-              <div className="text-teal-100 text-sm">karmachoda11@gmail.com</div>
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-4xl mx-auto">
+            <a href="tel:0400000000" className="bg-white/10 rounded-xl p-6 lg:p-8 hover:bg-white/15 transition-colors border border-white/20">
+              <Phone className="mx-auto mb-4" size={32} />
+              <div className="font-semibold text-lg mb-2">Phone</div>
+              <div className="text-teal-100 text-base">04XX XXX XXX</div>
             </a>
-            <a
-              href="tel:+97517878787"
-              className="bg-white/10 rounded-xl p-6 hover:bg-white/15 transition-colors border border-white/20"
-            >
-              <Phone className="mx-auto mb-3" size={28} />
-              <div className="font-semibold mb-1">Phone</div>
-              <div className="text-teal-100 text-sm">+975 17878787</div>
+            <a href="mailto:hello@decertosupports.com.au" className="bg-white/10 rounded-xl p-6 lg:p-8 hover:bg-white/15 transition-colors border border-white/20">
+              <Mail className="mx-auto mb-4" size={32} />
+              <div className="font-semibold text-lg mb-2">Email</div>
+              <div className="text-teal-100 text-base break-all">hello@decertosupports.com.au</div>
+            </a>
+            <a href="https://www.decertosupports.com.au" target="_blank" rel="noopener noreferrer" className="bg-white/10 rounded-xl p-6 lg:p-8 hover:bg-white/15 transition-colors border border-white/20">
+              <Globe className="mx-auto mb-4 text-white" size={32} />
+              <div className="font-semibold text-lg mb-2">Website</div>
+              <div className="text-teal-100 text-base">www.decertosupports.com.au</div>
             </a>
           </div>
         </div>
@@ -650,63 +958,29 @@ const ContactPreview: React.FC = () => {
   );
 };
 
-// Services Page
-const ServicesPage: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
-  const services = [
-    {
-      title: 'Support coordination',
-      description: 'We help you make sense of funding and services, set goals and link you with the right supports. You stay in control; we handle the paperwork and connections so your plan works for you.',
-      icon: '🎯'
-    },
-    {
-      title: 'Personal care',
-      description: 'Help with washing, dressing and hygiene, delivered with respect and in line with your routine. We focus on your comfort and independence at home and keep your preferences at the centre.',
-      icon: '💙'
-    },
-    {
-      title: 'Transport',
-      description: 'Door-to-door travel for appointments, shopping and social trips. We make getting around easier when mobility or public transport is a barrier.',
-      icon: '🚗'
-    },
-    {
-      title: 'Domestic Assistance',
-      description: 'Managing your home can be easier with a little help. Our domestic services include cleaning, laundry, dishwashing, and general tidying. Whether it\'s ongoing or occasional support, we\'re here to make daily living more manageable so you can enjoy a clean, safe, and comfortable living space.',
-      icon: '🏠'
-    },
-    {
-      title: 'Social & Community Participation',
-      description: 'We help you stay connected and active in your community. Whether it\'s attending social outings, events, group activities, or visiting family, we provide transport and support. Our services are designed to build your confidence, enhance your social life, and help you participate in activities.',
-      icon: '🌟'
-    },
-    {
-      title: 'Home & Garden Services',
-      description: 'Keeping your home and garden in shape can be challenging with a disability or health condition. Our team assists with mowing, tidying, light maintenance, and household tasks. We aim to keep your living space clean, safe, and welcoming—so you can enjoy your environment and feel proud of your home.',
-      icon: '🌱'
-    },
-    {
-      title: 'Nursing',
-      description: 'We offer professional and compassionate nursing care tailored to your individual health needs. Whether it\'s managing medications, providing wound care, monitoring chronic conditions, or supporting recovery, our experienced nurses are here to help. We aim to promote your independence, comfort, and overall wellbeing.',
-      icon: '⚕️'
-    },
-    {
-      title: 'Behaviour Support Implementation',
-      description: 'We help you put personalised behaviour support plans into everyday practice. Our trained staff work alongside you to encourage positive behaviour, develop skills, and create safe, supportive environments. We focus on building confidence and improving daily experiences.',
-      icon: '💪'
-    }
-  ];
+// Services Page – same attractive card style as reference (icon top-left, white card, subtle border)
+const SERVICES_WITH_ICONS = [
+  { title: 'Personal Assistance (Personal Care)', description: 'We understand that personal care is deeply personal. Our team provides respectful, dignified support with daily personal activities — showering, grooming, hygiene, dressing and mobility support, medication assistance, and mealtime support. Your privacy, dignity, and choice are always at the heart of everything we do.', Icon: HandHelping, iconBg: 'bg-blue-100', iconColor: 'text-blue-600', borderColor: 'border-teal-100' },
+  { title: 'Social & Community Participation', description: 'We support you to stay connected, build confidence, and enjoy being part of your community. Support may include attending social events, community outings and appointments, building social skills and independence, and pursuing hobbies and interests. Reliable, person-centred support for an active, confident life.', Icon: Star, iconBg: 'bg-amber-100', iconColor: 'text-amber-600', borderColor: 'border-slate-200' },
+  { title: 'Domestic Assistance', description: 'We assist with everyday household tasks to maintain a safe, clean, and comfortable home — general cleaning, laundry and linen changes, meal preparation, and household organisation. Reliable, consistent care you can depend on.', Icon: Home, iconBg: 'bg-slate-100', iconColor: 'text-slate-600', borderColor: 'border-slate-200' },
+  { title: 'Home Gardening Services', description: 'We help keep your outdoor spaces safe, tidy, and enjoyable — lawn mowing and garden maintenance, weeding and pruning, general outdoor upkeep, and ensuring pathways are safe and accessible. Friendly, respectful, and dependable support all year round.', Icon: Leaf, iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', borderColor: 'border-slate-200' },
+  { title: 'High Intensity Supports', description: 'For participants with complex needs we provide trust, understanding, and genuinely compassionate care. Our service is shaped by lived experience. Supports include complex personal care, enteral feeding and medication assistance, specialised equipment support, and support for high physical needs.', Icon: Stethoscope, iconBg: 'bg-rose-100', iconColor: 'text-rose-600', borderColor: 'border-slate-200' },
+  { title: 'Support Coordination', description: 'We help you navigate your support plan — connecting you with the right providers, organising and coordinating supports, explaining your plan clearly, building confidence to manage supports independently, and providing ongoing guidance and advocacy when challenges arise.', Icon: Target, iconBg: 'bg-teal-100', iconColor: 'text-teal-600', borderColor: 'border-slate-200' },
+];
 
+const ServicesPage: React.FC<{ navigate: (page: string) => void }> = () => {
   return (
     <div className="pt-20">
       <section className="py-20 bg-teal-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Our services</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Our Services</h1>
           <p className="text-teal-100 max-w-2xl mx-auto">
-            We offer in-home support, transport, community access and coordination so you can live the way you want. Every package is built around your goals and preferences.
+            At Decerto Supports, we provide a wide range of supports as a disability services provider, tailored to meet the unique needs, goals, and preferences of every participant we work with. You&apos;re not just another participant — you&apos;re part of a community that genuinely cares.
           </p>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
@@ -714,16 +988,35 @@ const ServicesPage: React.FC<{ navigate: (page: string) => void }> = ({ navigate
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            {services.map((service, index) => (
+            {SERVICES_WITH_ICONS.map((service, index) => (
               <div
                 key={index}
-                className="bg-slate-50 rounded-xl p-6 border border-slate-200 hover:border-teal-200 transition-colors"
+                className={`bg-white rounded-2xl p-6 sm:p-8 border ${service.borderColor} hover:shadow-xl transition-all duration-300`}
               >
-                <div className="text-4xl mb-4">{service.icon}</div>
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-5 ${service.iconBg}`}>
+                  <service.Icon className={service.iconColor} size={28} fill="currentColor" strokeWidth={1.5} />
+                </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{service.title}</h3>
                 <p className="text-slate-600 leading-relaxed text-sm">{service.description}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-16 pt-16 border-t border-slate-200">
+            <h3 className="text-2xl font-bold text-slate-900 mb-6 text-center">Levels of Support Coordination</h3>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="bg-teal-50 rounded-xl p-6 border border-teal-100">
+                <h4 className="font-bold text-teal-800 mb-2">Level 1 – Support Connection</h4>
+                <p className="text-slate-600 text-sm">We help you get started by connecting you with the right supports and services.</p>
+              </div>
+              <div className="bg-teal-50 rounded-xl p-6 border border-teal-100">
+                <h4 className="font-bold text-teal-800 mb-2">Level 2 – Coordination of Supports</h4>
+                <p className="text-slate-600 text-sm">We work closely with you to manage your supports and build your independence.</p>
+              </div>
+              <div className="bg-teal-50 rounded-xl p-6 border border-teal-100">
+                <h4 className="font-bold text-teal-800 mb-2">Level 3 – Specialist Support Coordination</h4>
+                <p className="text-slate-600 text-sm">For more complex situations, we provide extra support to overcome challenges and ensure all your supports work together effectively.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -735,11 +1028,11 @@ const ServicesPage: React.FC<{ navigate: (page: string) => void }> = ({ navigate
           <h2 className="text-3xl font-bold mb-2">Need help?</h2>
           <p className="text-teal-100 mb-8">Get in touch for a consultation.</p>
           <a
-            href="tel:+97517878787"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-700 rounded-lg font-semibold hover:bg-teal-50 transition-colors"
+            href="tel:0400000000"
+            className="btn-secondary inline-flex items-center gap-2"
           >
             <Phone size={18} />
-            Call +975 17878787
+            Call 04XX XXX XXX
           </a>
         </div>
       </section>
@@ -754,52 +1047,93 @@ const CareersPage: React.FC = () => {
     email: '',
     phone: '',
     position: 'Disability Support Worker',
-    coverLetter: ''
+    coverLetter: '',
+    resumeFileName: ''
   });
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (resumeFile) setFormData((d) => ({ ...d, resumeFileName: resumeFile.name }));
     alert('Thank you for your application! We will be in touch soon.');
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setResumeFile(file);
   };
 
   return (
     <div className="pt-20">
       <section className="py-20 bg-teal-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Join our team</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Join Our Team</h1>
           <p className="text-teal-100 max-w-2xl mx-auto">
             We’re looking for people who care about making a difference. If you’re reliable, kind and want to support others to live well, we’d like to hear from you.
           </p>
         </div>
       </section>
 
+      {/* Disability Support Worker – Key duties & Requirements */}
+      <section className="py-16 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-block px-4 py-2 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">Current vacancy</div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Disability Support Worker</h2>
+            <p className="text-slate-600 leading-relaxed mb-8">
+              Work with participants to develop rapport and lasting professional relationships. You will work within the support funding framework to help participants achieve their goals, increase independence and participation in the community.
+            </p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Key duties include</h3>
+                <ul className="space-y-3">
+                  {['Assistance with ADLs (e.g. toileting, showering, dressing, cooking, cleaning).', 'Individual support to participants with psychosocial or complex needs.', 'Assisting with social outings, shopping trips and appointments.', 'Liaising with families and representatives as required.', 'Promoting positive behaviours, skill development and independence.'].map((duty, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Check className="mt-0.5 text-teal-600 flex-shrink-0" size={18} />
+                      <span className="text-slate-700 text-sm">{duty}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                <h3 className="text-xl font-bold text-slate-900 mb-4">Requirements</h3>
+                <ul className="space-y-3">
+                  {['Certificate III in Individual Support, Community Services, Disability or similar (or willingness to obtain).', 'National Police Certificate (or willingness to obtain).', 'Current driver licence where driving is required.', 'Current First Aid certificate (e.g. HLTAID003 or equivalent).'].map((req, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Check className="mt-0.5 text-teal-600 flex-shrink-0" size={18} />
+                      <span className="text-slate-700 text-sm">{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+          <div className="grid md:grid-cols-2 gap-12 items-center mb-12">
             <div>
-              <div className="inline-block px-4 py-2 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-6">
-                Vacancy
-              </div>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">
-                Support worker
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">
+                Why work with us?
               </h2>
               <p className="text-slate-600 leading-relaxed mb-6">
                 You’ll work alongside clients and their families to help with daily life—personal care, household tasks, getting out and about, and being a steady, friendly presence. We match you with people whose needs fit your skills and availability, and support you with training and clear expectations.
               </p>
               <a
-                href="mailto:karmachoda11@gmail.com"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                href="mailto:careers@decertosupports.com.au"
+                className="btn-primary inline-flex items-center gap-2"
               >
                 <Mail size={20} />
-                Apply: karmachoda11@gmail.com
+                Apply: careers@decertosupports.com.au
               </a>
             </div>
 
             <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200/80">
                 <img
-                  src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&h=600&fit=crop"
-                  alt="Disability support worker - Unsplash"
+                  src={photo3}
+                  alt="Disability support worker"
                   className="w-full h-auto object-cover aspect-[4/3]"
                 />
               </div>
@@ -811,11 +1145,11 @@ const CareersPage: React.FC = () => {
               <h3 className="text-2xl font-bold text-slate-900 mb-6">What you’ll do</h3>
               <ul className="space-y-4">
                 {[
-                  'Help with daily activities: personal care, meal prep, light housekeeping.',
+                  'Supportive and inclusive team culture',
                   'One-to-one support tailored to each client’s needs and goals.',
-                  'Support with outings, appointments and community activities.',
+                  'Flexible opportunities to suit your lifestyle',
                   'Keep in touch with families and others involved in the person’s care.',
-                  'Encourage skills and confidence and follow any behaviour support plans.'
+                  'A strong focus on reliability, respect, and quality care'
                 ].map((duty, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <div className="mt-1 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -828,7 +1162,7 @@ const CareersPage: React.FC = () => {
             </div>
 
             <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">What we need from you</h3>
+              <h3 className="text-2xl font-bold text-slate-900 mb-6">Apply or get in touch</h3>
               <ul className="space-y-4">
                 {[
                   'Relevant qualification in disability, community services or similar (or willingness to obtain)',
@@ -889,6 +1223,11 @@ const CareersPage: React.FC = () => {
               </div>
 
               <div>
+                <label htmlFor="careers-resume" className="block text-sm font-semibold text-gray-700 mb-2">Upload your resume (PDF or DOC)</label>
+                <input id="careers-resume" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-teal-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-100 file:text-teal-700 file:font-medium" />
+                {resumeFile && <p className="mt-2 text-sm text-slate-500">Selected: {resumeFile.name}</p>}
+              </div>
+              <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Phone Number
                 </label>
@@ -911,10 +1250,11 @@ const CareersPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-teal-500 focus:outline-none transition-colors"
                 >
-                  <option>Disability Support Worker</option>
-                  <option>Support Coordinator</option>
-                  <option>Nurse</option>
-                  <option>Other</option>
+                  <option value="Disability Support Worker">Disability Support Worker</option>
+                  <option value="Support Coordinator">Support Coordinator</option>
+                  <option value="Personal Care Worker">Personal Care Worker</option>
+                  <option value="High Intensity Support">High Intensity Support</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
@@ -933,7 +1273,7 @@ const CareersPage: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full px-8 py-4 bg-gradient-to-r from-teal-500 to-blue-600 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="btn-primary w-full px-8 py-4 rounded-xl text-lg hover:scale-[1.02] active:scale-[0.98]"
               >
                 Submit Application
               </button>
@@ -951,7 +1291,7 @@ const ContactPage: React.FC = () => {
     <div className="pt-20">
       <section className="py-20 bg-teal-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact us</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-teal-100 max-w-xl mx-auto">
             Have a question or ready to get started? We’re here to help.
           </p>
@@ -971,7 +1311,7 @@ const ContactPage: React.FC = () => {
               </p>
               <div className="space-y-4">
                 <a
-                  href="mailto:karmachoda11@gmail.com"
+                  href="mailto:hello@decertosupports.com.au"
                   className="flex items-start gap-4 p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-teal-200 transition-colors"
                 >
                   <div className="w-11 h-11 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -979,11 +1319,11 @@ const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-slate-900 mb-0.5">Email</div>
-                    <div className="text-teal-600 text-sm">karmachoda11@gmail.com</div>
+                    <div className="text-teal-600 text-sm">hello@decertosupports.com.au</div>
                   </div>
                 </a>
                 <a
-                  href="tel:+97517878787"
+                  href="tel:0400000000"
                   className="flex items-start gap-4 p-5 bg-slate-50 rounded-xl border border-slate-200 hover:border-teal-200 transition-colors"
                 >
                   <div className="w-11 h-11 bg-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -991,7 +1331,7 @@ const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-semibold text-slate-900 mb-0.5">Phone</div>
-                    <div className="text-teal-600 text-sm">+975 17878787</div>
+                    <div className="text-teal-600 text-sm">04XX XXX XXX</div>
                   </div>
                 </a>
               </div>
@@ -999,12 +1339,12 @@ const ContactPage: React.FC = () => {
             <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200/80">
                 <img
-                  src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&h=1000&fit=crop"
-                  alt="Get in touch - Unsplash"
+                  src={photo4}
+                  alt="Get in touch"
                   className="w-full h-auto object-cover aspect-[4/5]"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
-                  <h3 className="text-xl font-bold mb-1">We're here to help</h3>
+                  <h3 className="text-xl font-bold mb-1">We&apos;re here to help</h3>
                   <p className="text-sm text-white/90">Reach out for support and guidance</p>
                 </div>
               </div>
@@ -1020,20 +1360,14 @@ const ContactPage: React.FC = () => {
 const Footer: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => {
   return (
     <footer className="bg-slate-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid md:grid-cols-4 gap-10 mb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-8 sm:mb-10">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-teal-600 p-2.5 rounded-xl">
-                <Heart className="text-white" size={24} fill="currentColor" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold">Care Connect</h3>
-                <p className="text-sm text-slate-400">Disability &amp; Family Support</p>
-              </div>
+            <div className="mb-4">
+              <h3 className="text-xl font-bold">Decerto Supports</h3>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-6">
-              We’re here to help you live well at home and in the community, with support that puts you in the driver’s seat.
+              Support built on trust, understanding, and genuine care. We walk alongside you with reliable, compassionate support for independence and dignity.
             </p>
             <div className="flex gap-3">
               <a href="#" className="w-9 h-9 bg-slate-700 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors" aria-label="Facebook">
@@ -1059,19 +1393,20 @@ const Footer: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) =>
           <div>
             <h4 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">Contact</h4>
             <ul className="space-y-3 text-sm">
-              <li><a href="tel:+97517878787" className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors"><Phone size={16} /> +975 17878787</a></li>
-              <li><a href="mailto:karmachoda11@gmail.com" className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors break-all"><Mail size={16} /> karmachoda11@gmail.com</a></li>
+              <li><a href="tel:0400000000" className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors"><Phone size={16} /> 04XX XXX XXX</a></li>
+              <li><a href="mailto:hello@decertosupports.com.au" className="flex items-center gap-2 text-slate-400 hover:text-teal-400 transition-colors break-all"><Mail size={16} /> hello@decertosupports.com.au</a></li>
             </ul>
           </div>
         </div>
         <div className="border-t border-slate-700 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
           <div>
-            2025 © Care Connect
+            2025 © Decerto Supports
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 transition-colors">
-              Photos: Unsplash
+            <a href="https://www.ndis.gov.au" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 transition-colors inline-flex items-center gap-1">
+              Disability support (Australia) <ExternalLink size={14} />
             </a>
+            <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-teal-400 transition-colors">Photos: Unsplash</a>
             <a href="#" className="hover:text-teal-400 transition-colors">Privacy</a>
             <a href="#" className="hover:text-teal-400 transition-colors">Terms</a>
           </div>
