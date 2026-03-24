@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Phone, Mail, ArrowRight, Facebook, Check, Target, HandHelping, Home, Shield, ExternalLink, MapPin, ChevronUp, Star, Leaf, Stethoscope, Globe, Instagram } from 'lucide-react';
-import logoSrc from './src/logo/logo.jpeg';
-import imageJpg from './src/logo/5.jpg';
-import image2 from './src/logo/6.jpg';
-import photo2 from './src/logo/2.jpeg';
-import photo3 from './src/logo/3.jpg';
-import photo4 from './src/logo/4.jpg';
-import photoJpeg from './src/logo/7.jpeg';
-import photo1 from './src/logo/1.jpeg';
-import photo8 from './src/logo/8.jpg';
-import photo9 from './src/logo/9.jpeg';
-import backgroundImage from './src/logo/background.jpg';
+import logoSrc from './src/logo/logo.webp';
+import imageJpg from './src/logo/5.webp';
+import image2 from './src/logo/6.webp';
+import photo2 from './src/logo/2.webp';
+import photo3 from './src/logo/3.webp';
+import photo4 from './src/logo/4.webp';
+import photoJpeg from './src/logo/7.webp';
+import photo1 from './src/logo/1.webp';
+import photo8 from './src/logo/8.webp';
+import photo9 from './src/logo/9.webp';
+import backgroundImage from './src/logo/background.webp';
 
 // Text zoom and background theme (persisted)
 const ZOOM_LEVELS = [90, 100, 110, 125, 150] as const;
@@ -161,7 +161,9 @@ const LogoImage: React.FC = () => {
     <img
       src={logoSrc}
       alt="Decerto Supports"
-      className="h-[84px] sm:h-[98px] md:h-[110px] w-auto object-contain flex-shrink-0 border-0 outline-none ring-0 shadow-none"
+      className="h-[56px] sm:h-[90px] md:h-[104px] w-auto object-contain flex-shrink-0 border-0 outline-none ring-0 shadow-none"
+      loading="eager"
+      decoding="async"
       onError={() => setError(true)}
     />
   );
@@ -193,19 +195,19 @@ const Header: React.FC<{
         animation: 'slideDown 0.5s ease-out'
       }}
     >
-      <div className="max-w-[1600px] w-full mx-auto pl-[2px] pr-4 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8 xl:pl-4 xl:pr-12">
-        <div className="flex justify-between items-center h-20 min-h-[4rem] sm:h-24 sm:min-h-[5rem]">
+      <div className="max-w-[1600px] w-full mx-auto pl-[2px] pr-3 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8 xl:pl-4 xl:pr-12">
+        <div className="flex justify-between items-center h-[76px] min-h-[4.75rem] sm:h-24 sm:min-h-[5rem]">
           {/* Logo */}
           <button 
             onClick={() => navigate('home')}
-            className="flex items-center gap-6 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg"
+            className="flex items-center gap-2 sm:gap-5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg"
           >
             <LogoImage />
-            <div className="text-left">
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-teal-800 tracking-tight leading-tight">
+            <div className="text-left max-w-[190px] sm:max-w-none">
+              <h1 className="text-[15px] sm:text-2xl md:text-3xl lg:text-4xl font-bold text-teal-800 tracking-tight leading-tight">
                 Decerto Supports
               </h1>
-              <p className="text-sm sm:text-base text-teal-700 mt-0.5 font-medium tracking-wide">
+              <p className="text-[11px] sm:text-base text-teal-700 mt-0.5 font-medium tracking-wide leading-tight">
                 Disability Services Provider
               </p>
             </div>
@@ -330,12 +332,15 @@ const HERO_IMAGE = {
 
 // Hero Section – single-image layout
 const HeroSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate }) => (
-  <section className="relative min-h-[78vh] sm:min-h-[85vh] flex items-center pt-20 sm:pt-24 pb-12 sm:pb-16 overflow-hidden bg-white">
+  <section className="relative min-h-[76vh] sm:min-h-[85vh] flex items-center pt-[76px] sm:pt-24 pb-10 sm:pb-16 overflow-hidden bg-white">
     <div className="absolute inset-0">
       <img
         src={HERO_IMAGE.src}
         alt={HERO_IMAGE.caption}
-        className="w-full h-full object-cover filter saturate-105 brightness-95"
+        className="w-full h-full object-cover object-[68%_center] sm:object-center bg-slate-900 filter saturate-105 brightness-95"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         aria-hidden="true"
       />
       <div
@@ -410,7 +415,9 @@ const AboutSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate
               <img
                 src={photo1}
                 alt="Professional disability and family support"
-                className="w-full h-auto object-cover aspect-[4/3]"
+                className="w-full h-auto object-contain sm:object-cover aspect-[4/3] bg-slate-100"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
@@ -588,7 +595,9 @@ const CareersPreview: React.FC<{ navigate: (page: string) => void }> = ({ naviga
                 <img
                   src={image2}
                   alt="Join Decerto Supports"
-                  className="w-full h-auto object-cover aspect-[4/3]"
+                  className="w-full h-auto object-contain sm:object-cover aspect-[4/3] bg-slate-100"
+                  loading="lazy"
+                  decoding="async"
                 />
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
                 <div className="font-semibold">Let&apos;s grow together</div>
@@ -637,7 +646,7 @@ const BlogSection: React.FC = () => {
               key={index}
               className="bg-white rounded-2xl overflow-hidden shadow-md border border-slate-200 hover:shadow-xl hover:border-teal-200 transition-all duration-300"
             >
-              <img src={item.image} alt={item.title} className="w-full h-52 object-cover" />
+              <img src={item.image} alt={item.title} className="w-full h-52 object-contain sm:object-cover bg-slate-100" loading="lazy" decoding="async" />
               <div className="p-6">
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
                 <p className="text-slate-600 leading-relaxed text-base">{BLOG_SHARED_CONTENT}</p>
@@ -899,7 +908,9 @@ const CareersPage: React.FC = () => {
                 <img
                   src={photoJpeg}
                   alt="Disability support worker"
-                  className="w-full h-auto object-cover aspect-[4/3]"
+                  className="w-full h-auto object-contain sm:object-cover aspect-[4/3] bg-slate-100"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -1099,7 +1110,9 @@ const ContactPage: React.FC = () => {
                 <img
                   src={photo8}
                   alt="Get in touch"
-                  className="w-full h-auto object-cover aspect-[4/5]"
+                  className="w-full h-auto object-contain sm:object-cover aspect-[4/5] bg-slate-100"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
                   <h3 className="text-xl font-bold mb-1">We&apos;re here to help</h3>
