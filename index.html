@@ -6,16 +6,52 @@
     <meta name="description" content="Decerto Supports – Disability services provider in Australia. Person-centred support built on lived experience, reliability and dignity. Personal care, community participation, support coordination and more." />
     <meta name="theme-color" content="#0f766e" />
     <meta name="geo.region" content="AU" />
+    <link rel="canonical" href="https://decerto-support.vercel.app/" />
     <meta property="og:title" content="Decerto Supports – Disability Services Provider" />
     <meta property="og:description" content="Person-centred disability supports built on lived experience. Reliable, compassionate care for independence and dignity. Serving Australia." />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_AU" />
+    <meta property="og:url" content="https://decerto-support.vercel.app/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
     <title>Decerto Supports – Disability Services Provider</title>
+    <!-- Meta (Facebook) Pixel – replace YOUR_META_PIXEL_ID with your Pixel ID from Events Manager -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', 'YOUR_META_PIXEL_ID');
+      fbq('track', 'PageView');
+    </script>
+    <!-- End Meta Pixel Code -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Decerto Supports",
+        "url": "https://decerto-support.vercel.app",
+        "description": "Person-centred disability support in Perth and WA. Personal care, community participation, support coordination.",
+        "areaServed": { "@type": "State", "name": "Western Australia" },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+61-400-000-000",
+          "contactType": "customer service",
+          "email": "hello@decertosupports.com.au",
+          "areaServed": "AU"
+        }
+      }
+    </script>
   </head>
   <body>
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=YOUR_META_PIXEL_ID&ev=PageView&noscript=1"
+      alt="" /></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
