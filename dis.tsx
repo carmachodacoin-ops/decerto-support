@@ -162,6 +162,8 @@ const LogoImage: React.FC = () => {
       src={logoSrc}
       alt="Decerto Supports"
       className="h-[84px] sm:h-[98px] md:h-[110px] w-auto object-contain flex-shrink-0 border-0 outline-none ring-0 shadow-none"
+      loading="eager"
+      decoding="async"
       onError={() => setError(true)}
     />
   );
@@ -336,6 +338,9 @@ const HeroSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate 
         src={HERO_IMAGE.src}
         alt={HERO_IMAGE.caption}
         className="w-full h-full object-cover filter saturate-105 brightness-95"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         aria-hidden="true"
       />
       <div
@@ -411,6 +416,8 @@ const AboutSection: React.FC<{ navigate: (page: string) => void }> = ({ navigate
                 src={photo1}
                 alt="Professional disability and family support"
                 className="w-full h-auto object-cover aspect-[4/3]"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
@@ -589,6 +596,8 @@ const CareersPreview: React.FC<{ navigate: (page: string) => void }> = ({ naviga
                   src={image2}
                   alt="Join Decerto Supports"
                   className="w-full h-auto object-cover aspect-[4/3]"
+                  loading="lazy"
+                  decoding="async"
                 />
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
                 <div className="font-semibold">Let&apos;s grow together</div>
@@ -637,7 +646,7 @@ const BlogSection: React.FC = () => {
               key={index}
               className="bg-white rounded-2xl overflow-hidden shadow-md border border-slate-200 hover:shadow-xl hover:border-teal-200 transition-all duration-300"
             >
-              <img src={item.image} alt={item.title} className="w-full h-52 object-cover" />
+              <img src={item.image} alt={item.title} className="w-full h-52 object-cover" loading="lazy" decoding="async" />
               <div className="p-6">
                 <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
                 <p className="text-slate-600 leading-relaxed text-base">{BLOG_SHARED_CONTENT}</p>
@@ -900,6 +909,8 @@ const CareersPage: React.FC = () => {
                   src={photoJpeg}
                   alt="Disability support worker"
                   className="w-full h-auto object-cover aspect-[4/3]"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -1100,6 +1111,8 @@ const ContactPage: React.FC = () => {
                   src={photo8}
                   alt="Get in touch"
                   className="w-full h-auto object-cover aspect-[4/5]"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 to-transparent text-white">
                   <h3 className="text-xl font-bold mb-1">We&apos;re here to help</h3>
